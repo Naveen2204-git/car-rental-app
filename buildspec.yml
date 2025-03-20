@@ -1,24 +1,31 @@
 version: 0.2
 
 phases:
-  install:
-    runtime-versions:
-      python: 3.9
-    commands:
-      - echo "Installing dependencies..."
-      - pip install -r requirements.txt
-      - pip install docker
   pre_build:
     commands:
-      - echo "Logging in to Amazon ECR..."
+      - echo Logging in to Amazon ECR...
       - aws ecr get-login-password --region us-east-2 | docker login --username AWS --password-stdin 783744717866.dkr.ecr.us-east-2.amazonaws.com
+      - yum update -y
+      - yum install -y docker
+
   build:
     commands:
-      - echo "Building the Docker image..."
-      - docker build -t car_rental_app .
-      - docker tag car_rental_app:latest 783744717866.dkr.ecr.us-east-2.amazonaws.com/car_rental_app:latest
+      - echo Building the Docker image...
+      - service docker start
+      - docker build -t 783744717866.dkr.ecr.us-east-2.amazonaws.com/car-rental-app:latest .
+      - docker tag 783744717866.dkr.ecr.us-east-2.amazonaws.com/car-rental-app:latest 783744717866.dkr.ecr.us-east-2.amazonaws.com/car-rental-app:latest
+
   post_build:
     commands:
-      - echo "Pushing Docker image to Amazon ECR..."
-      - docker push 783744717866.dkr.ecr.us-east-2.amazonaws.com/car_rental_app:latest
-      - echo "Build completed successfully."
+      - echo Pushing the Docker image to Amazon ECR...
+      - docker push 783744717866.dkr.ecr.us-east-2.amazonaws.com/car-rental-app:latest
+      - echo Deploying to Amazon EKS...
+      - aws eks update-kubeconfig --name car-rental-cluster --region us-east-1
+      - kubectl apply -f k8s-manifests/namespace.yml
+      - kubectl apply -f k8s-manifests/deployment.yml
+      - kubectl apply -f k8s-manifests/service.yml
+      - echo Deployment to EKS completed successfully.
+
+artifacts:
+  files: '**/*'
+
