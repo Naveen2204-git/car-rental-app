@@ -1,0 +1,24 @@
+version: 0.2
+
+phases:
+  install:
+    runtime-versions:
+      python: 3.9
+    commands:
+      - echo "Installing dependencies..."
+      - pip install -r requirements.txt
+      - pip install docker
+  pre_build:
+    commands:
+      - echo "Logging in to Amazon ECR..."
+      - aws ecr get-login-password --region us-east-2 | docker login --username AWS --password-stdin 783744717866.dkr.ecr.us-east-2.amazonaws.com
+  build:
+    commands:
+      - echo "Building the Docker image..."
+      - docker build -t car_rental_app .
+      - docker tag car_rental_app:latest 783744717866.dkr.ecr.us-east-2.amazonaws.com/car_rental_app:latest
+  post_build:
+    commands:
+      - echo "Pushing Docker image to Amazon ECR..."
+      - docker push 783744717866.dkr.ecr.us-east-2.amazonaws.com/car_rental_app:latest
+      - echo "Build completed successfully."
